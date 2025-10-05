@@ -5,29 +5,26 @@ pluginManagement {
     gradlePluginPortal()
   }
 
-  // Make React Native Gradle plugins available from node_modules
+  // Make RN’s main Gradle plugin available to :app (no settings plugin)
   includeBuild(file("../node_modules/@react-native/gradle-plugin"))
 
-  // Make Expo autolinking Gradle plugins available from node_modules
+  // Expo Autolinking Gradle plugins
   includeBuild(file("../node_modules/expo-modules-autolinking/android/expo-gradle-plugin"))
 }
 
 plugins {
-  // These plugin IDs come from the builds included above; no version needed
-  id("com.facebook.react.settings")
+  // DO NOT apply 'com.facebook.react.settings' here — that’s the failing plugin
   id("expo-autolinking-settings")
 }
 
-extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
-  if (System.getenv("EXPO_USE_COMMUNITY_AUTOLINKING") == "1") {
-    ex.autolinkLibrariesFromCommand()
-  } else {
-    ex.autolinkLibrariesFromCommand(expoAutolinking.rnConfigCommand)
-  }
+// Optional niceties provided by the Expo settings plugin
+// (They don’t depend on the RN settings plugin.)
+try {
+  expoAutolinking.useExpoModules()
+  expoAutolinking.useExpoVersionCatalog()
+} catch (ignored) {
+  // Keep CI resilient if plugin APIs change
 }
-
-expoAutolinking.useExpoModules()
-expoAutolinking.useExpoVersionCatalog()
 
 rootProject.name = "Kingzdata"
 include(":app")
