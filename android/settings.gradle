@@ -1,0 +1,31 @@
+pluginManagement {
+  repositories {
+    google()
+    mavenCentral()
+    gradlePluginPortal()
+  }
+
+  // Make React Native + Expo gradle plugins available from node_modules
+  includeBuild("../node_modules/@react-native/gradle-plugin")
+  includeBuild("../node_modules/expo-modules-autolinking/android/expo-gradle-plugin")
+}
+
+plugins {
+  // No version here; we load it from the includeBuild above
+  id("com.facebook.react.settings")
+  id("expo-autolinking-settings")
+}
+
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
+  if (System.getenv("EXPO_USE_COMMUNITY_AUTOLINKING") == "1") {
+    ex.autolinkLibrariesFromCommand()
+  } else {
+    ex.autolinkLibrariesFromCommand(expoAutolinking.rnConfigCommand)
+  }
+}
+
+expoAutolinking.useExpoModules()
+expoAutolinking.useExpoVersionCatalog()
+
+rootProject.name = "Kingzdata"
+include(":app")
