@@ -10,7 +10,10 @@
     "web": "expo start --web",
     "test": "jest --watchAll",
     "lint": "expo lint",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+  "eas-build-pre-install": "node -e \"console.log('RN plugin:', require.resolve('@react-native/gradle-plugin/package.json'))\"",
+  "eas-build-post-install": "npx expo prebuild --platform android --clean --non-interactive && node -e \"const fs=require('fs'); fs.mkdirSync('android/gradle/wrapper',{recursive:true}); fs.writeFileSync('android/gradle/wrapper/gradle-wrapper.properties','distributionUrl=https://services.gradle.org/distributions/gradle-8.6-all.zip\\n'); console.log('Pinned Gradle 8.6');\""
+}
   },
   "jest": {
     "preset": "jest-expo"
@@ -43,6 +46,7 @@
     "@types/jest": "^29.5.12",
     "@types/react": "~18.2.45",
     "@types/react-test-renderer": "^18.0.7",
+    "expo-modules-autolinking": "^3.0.14",
     "jest": "^29.2.1",
     "jest-expo": "~51.0.3",
     "patch-package": "^8.0.1",
