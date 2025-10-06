@@ -2,6 +2,7 @@
   "name": "Kingzdata",
   "main": "expo-router/entry",
   "version": "1.0.0",
+  "private": true,
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -11,9 +12,8 @@
     "test": "jest --watchAll",
     "lint": "expo lint",
     "postinstall": "patch-package",
-  "eas-build-pre-install": "node -e \"console.log('RN plugin:', require.resolve('@react-native/gradle-plugin/package.json'))\"",
-  "eas-build-post-install": "npx expo prebuild --platform android --clean --non-interactive && node -e \"const fs=require('fs'); fs.mkdirSync('android/gradle/wrapper',{recursive:true}); fs.writeFileSync('android/gradle/wrapper/gradle-wrapper.properties','distributionUrl=https://services.gradle.org/distributions/gradle-8.6-all.zip\\n'); console.log('Pinned Gradle 8.6');\""
-}
+    "eas-build-pre-install": "node scripts/eas-pre.js",
+    "eas-build-post-install": "node scripts/eas-post.js"
   },
   "jest": {
     "preset": "jest-expo"
@@ -52,6 +52,5 @@
     "patch-package": "^8.0.1",
     "react-test-renderer": "18.2.0",
     "typescript": "~5.3.3"
-  },
-  "private": true
+  }
 }
