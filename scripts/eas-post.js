@@ -10,37 +10,39 @@ function run(cmd) {
 // 1) Generate a fresh android/ from Expo templates
 run('npx expo prebuild --platform android --clean --non-interactive');
 
-// 2) Overwrite settings.gradle with a minimal, safe version
+// 2) Overwrite settings.gradle to expose ONLY the RN main plugin + Expo root plugin
+//    (No RN *settings* plugin, no Expo *autolinking settings* plugin)
 const settingsGroovy = `pluginManagement {
   repositories {
     google()
     mavenCentral()
     gradlePluginPortal()
   }
-  // Only include the RN *main* Gradle plugin (NOT RN/Expo settings plugins)
+  // React Native main Gradle plugin for :app (com.facebook.react)
   includeBuild(file("../node_modules/@react-native/gradle-plugin"))
+  // Expo root project plugin (provides 'expo-root-project' used by android/build.gradle)
+  includeBuild(file("../node_modules/expo/expo-gradle-plugin"))
 }
 
 rootProject.name = "Kingzdata"
 include(":app")
 `;
 
-
-const androidDir = path.join('android');
+const androidDir = 'android';
 if (!fs.existsSync(androidDir)) fs.mkdirSync(androidDir, { recursive: true });
 
 const groovyPath = path.join(androidDir, 'settings.gradle');
 fs.writeFileSync(groovyPath, settingsGroovy);
-console.log('Rewrote android/settings.gradle to minimal variant.');
+console.log('Rewrote android/settings.gradle (RN main + Expo root plugin only).');
 
-// If a Kotlin DSL file was emitted, blank it out so Gradle ignores it.
+// If a Kotlin DSL file exists, neutralize it so Groovy settings.gradle is used.
 const ktsPath = path.join(androidDir, 'settings.gradle.kts');
 if (fs.existsSync(ktsPath)) {
-  fs.writeFileSync(ktsPath, '// intentionally disabled by build script\n');
+  fs.writeFileSync(ktsPath, '// disabled by build script\n');
   console.log('Disabled android/settings.gradle.kts');
 }
 
-// 3) Pin Gradle 8.6 (RN 0.74-friendly)
+// 3) Pin Gradle wrapper (RN 0.74 works well with 8.6)
 fs.mkdirSync('android/gradle/wrapper', { recursive: true });
 fs.writeFileSync(
   'android/gradle/wrapper/gradle-wrapper.properties',
