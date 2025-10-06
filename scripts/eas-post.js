@@ -3,9 +3,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-function run(cmd) {
-  execSync(cmd, { stdio: 'inherit' });
-}
+function run(cmd) { execSync(cmd, { stdio: 'inherit' }); }
 
 // 1) Generate a fresh android/ from Expo templates
 run('npx expo prebuild --platform android --clean --non-interactive');
@@ -62,8 +60,6 @@ allprojects {
     mavenCentral()
   }
 }
-
-// (No plugins { id("expo-root-project") } here)
 `;
 fs.writeFileSync(path.join(androidDir, 'build.gradle'), rootBuildGradle);
 console.log('Wrote minimal android/build.gradle (no expo-root-project).');
@@ -102,7 +98,8 @@ android {
     targetSdkVersion 35
     versionCode 3
     versionName "1.0.3"
-    buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
+    // JS interpolation conflict avoided: set to a constant
+    buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"stable\""
   }
 
   signingConfigs {
@@ -166,7 +163,7 @@ dependencies {
   }
 }
 `;
-fs.mkdirSync(path.join(androidDir, 'app', 'src'), { recursive: true });
+fs.mkdirSync(path.join(androidDir, 'app'), { recursive: true });
 fs.writeFileSync(path.join(androidDir, 'app', 'build.gradle'), appBuildGradle);
 console.log('Wrote android/app/build.gradle (no expoLibs; API 35 hardcoded).');
 
@@ -177,3 +174,4 @@ fs.writeFileSync(
   'distributionUrl=https://services.gradle.org/distributions/gradle-8.6-all.zip\n'
 );
 console.log('Pinned Gradle 8.6');
+
