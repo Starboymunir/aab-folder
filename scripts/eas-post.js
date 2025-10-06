@@ -10,96 +10,167 @@ function run(cmd) {
 // 1) Generate a fresh android/ from Expo templates
 run('npx expo prebuild --platform android --clean --non-interactive');
 
-// 2) Locate RN main plugin and (optionally) Expo root plugin
-function findRNMainPluginDir() {
-  const rnPluginPkg = require.resolve('@react-native/gradle-plugin/package.json');
-  return path.dirname(rnPluginPkg);
-}
+// 2) Resolve RN main gradle plugin path (so :app can apply id("com.facebook.react"))
+const rnPluginPkg = require.resolve('@react-native/gradle-plugin/package.json');
+const rnPluginDir = path.dirname(rnPluginPkg);
 
-function findExpoRootPluginDirOrNull() {
-  // Try both layouts used by different Expo versions
-  const expoPkg = require.resolve('expo/package.json');
-  const expoRoot = path.dirname(expoPkg);
-  const candidates = [
-    path.join(process.cwd(), 'node_modules', 'expo', 'expo-gradle-plugin'),
-    path.join(expoRoot, 'expo-gradle-plugin'),
-    path.join(expoRoot, 'packages', 'expo-gradle-plugin'),
-  ];
-  for (const c of candidates) {
-    if (fs.existsSync(path.join(c, 'build.gradle')) || fs.existsSync(path.join(c, 'build.gradle.kts'))) {
-      return c;
-    }
-  }
-  return null;
-}
-
-const rnMainPluginDir = findRNMainPluginDir();
-const expoRootPluginDir = findExpoRootPluginDirOrNull();
-
+// Helpers
 const androidDir = path.join(process.cwd(), 'android');
 fs.mkdirSync(androidDir, { recursive: true });
+const relToAndroid = (p) => path.relative(androidDir, p).replace(/\\/g, '/');
+const rnRel = relToAndroid(rnPluginDir);
 
-// paths in settings.gradle should be **relative to android/**
-function relToAndroid(abs) {
-  return path.relative(androidDir, abs).replace(/\\/g, '/');
-}
-
-const rnRel = relToAndroid(rnMainPluginDir);
-const expoRel = expoRootPluginDir ? relToAndroid(expoRootPluginDir) : null;
-
-// 3) Write a minimal settings.gradle that *always* includes RN main plugin,
-//    and includes Expo root plugin only if we found it
-let settingsGroovy = `pluginManagement {
+// 3) Overwrite android/settings.gradle — minimal, no Expo/RN *settings* plugins
+const settingsGroovy = `pluginManagement {
   repositories {
     google()
     mavenCentral()
     gradlePluginPortal()
   }
-  includeBuild(file("${rnRel}")) // com.facebook.react (main plugin for :app)
-`;
-
-if (expoRel) {
-  settingsGroovy += `  includeBuild(file("${expoRel}")) // expo-root-project (root plugin)\n`;
+  // React Native main Gradle plugin for :app
+  includeBuild(file("${rnRel}"))
 }
-settingsGroovy += `}
 
 rootProject.name = "Kingzdata"
 include(":app")
 `;
-
 fs.writeFileSync(path.join(androidDir, 'settings.gradle'), settingsGroovy);
-console.log('settings.gradle written with:');
-console.log('  RN plugin  ->', rnRel);
-console.log('  Expo plugin->', expoRel ?? '(not found, will strip usage)');
+console.log('Wrote minimal android/settings.gradle (RN main plugin only).');
 
-// Disable Kotlin DSL variant so Groovy file is used if present
+// If Kotlin DSL exists, neutralize it
 const ktsPath = path.join(androidDir, 'settings.gradle.kts');
 if (fs.existsSync(ktsPath)) {
   fs.writeFileSync(ktsPath, '// disabled by post script\n');
   console.log('Disabled android/settings.gradle.kts');
 }
 
-// 4) If Expo root plugin NOT found, remove its usage from android/build.gradle
-if (!expoRel) {
-  const rootBuildGradle = path.join(androidDir, 'build.gradle');
-  if (fs.existsSync(rootBuildGradle)) {
-    let txt = fs.readFileSync(rootBuildGradle, 'utf8');
-    const before = txt;
-    // Remove "id('expo-root-project')" or 'id("expo-root-project")' in plugins{...}
-    txt = txt.replace(/^\s*id\s*\(\s*['"]expo-root-project['"]\s*\)\s*$/m, '');
-    txt = txt.replace(/^\s*id\s+['"]expo-root-project['"]\s*$/m, '');
-    if (txt !== before) {
-      fs.writeFileSync(rootBuildGradle, txt);
-      console.log('Removed expo-root-project from android/build.gradle (plugin not present).');
-    } else {
-      console.log('No expo-root-project line found in android/build.gradle (nothing to strip).');
-    }
-  } else {
-    console.log('android/build.gradle not found — skipping expo-root-project strip.');
+// 4) Overwrite android/build.gradle — classic buildscript, no expo-root-project
+const rootBuildGradle = `buildscript {
+  repositories {
+    google()
+    mavenCentral()
+  }
+  dependencies {
+    classpath("com.android.tools.build:gradle:8.5.2")
+    classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24")
   }
 }
 
-// 5) Pin Gradle wrapper to 8.6 (RN 0.74 friendly)
+allprojects {
+  repositories {
+    google()
+    mavenCentral()
+  }
+}
+
+// (No plugins { id("expo-root-project") } here)
+`;
+fs.writeFileSync(path.join(androidDir, 'build.gradle'), rootBuildGradle);
+console.log('Wrote minimal android/build.gradle (no expo-root-project).');
+
+// 5) Overwrite android/app/build.gradle — no expoLibs, hardcode API 35
+const appBuildGradle = `apply plugin: "com.android.application"
+apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: "com.facebook.react"
+
+def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
+
+react {
+  entryFile = file(["node", "-e", "require('expo/scripts/resolveAppEntry')", projectRoot, "android", "absolute"].execute(null, rootDir).text.trim())
+  reactNativeDir = new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsoluteFile()
+  hermesCommand = new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsolutePath() + "/sdks/hermesc/%OS-BIN%/hermesc"
+  codegenDir = new File(["node", "--print", "require.resolve('@react-native/codegen/package.json', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim()).getParentFile().getAbsoluteFile()
+  enableBundleCompression = (findProperty('android.enableBundleCompression') ?: false).toBoolean()
+  cliFile = new File(["node", "--print", "require.resolve('@expo/cli', { paths: [require.resolve('expo/package.json')] })"].execute(null, rootDir).text.trim())
+  bundleCommand = "export:embed"
+  autolinkLibrariesWithApp()
+}
+
+def enableMinifyInReleaseBuilds = (findProperty('android.enableMinifyInReleaseBuilds') ?: false).toBoolean()
+def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
+
+android {
+  compileSdk 35
+  buildToolsVersion "35.0.0"
+  ndkVersion "26.1.10909125"
+
+  namespace 'com.anonymous.Kingzdata'
+
+  defaultConfig {
+    applicationId 'com.anonymous.Kingzdata'
+    minSdkVersion 23
+    targetSdkVersion 35
+    versionCode 3
+    versionName "1.0.3"
+    buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
+  }
+
+  signingConfigs {
+    debug {
+      storeFile file('debug.keystore')
+      storePassword 'android'
+      keyAlias 'androiddebugkey'
+      keyPassword 'android'
+    }
+  }
+
+  buildTypes {
+    debug { signingConfig signingConfigs.debug }
+    release {
+      signingConfig signingConfigs.debug // TODO: replace with real release keystore
+      def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
+      shrinkResources enableShrinkResources.toBoolean()
+      minifyEnabled enableMinifyInReleaseBuilds
+      proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+      def enablePngCrunchInRelease = findProperty('android.enablePngCrunchInReleaseBuilds') ?: 'true'
+      crunchPngs enablePngCrunchInRelease.toBoolean()
+    }
+  }
+
+  packagingOptions {
+    jniLibs {
+      def enableLegacyPackaging = findProperty('expo.useLegacyPackaging') ?: 'false'
+      useLegacyPackaging enableLegacyPackaging.toBoolean()
+    }
+  }
+
+  androidResources {
+    ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
+  }
+}
+
+// Optional Fresco extras without expoLibs — use a fixed version if enabled
+def frescoVersion = '3.2.0'
+
+dependencies {
+  implementation("com.facebook.react:react-android")
+
+  def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true"
+  def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true"
+  def isWebpAnimatedEnabled = (findProperty('expo.webp.animated') ?: "") == "true"
+
+  if (isGifEnabled) {
+    implementation("com.facebook.fresco:animated-gif:${frescoVersion}")
+  }
+  if (isWebpEnabled) {
+    implementation("com.facebook.fresco:webpsupport:${frescoVersion}")
+    if (isWebpAnimatedEnabled) {
+      implementation("com.facebook.fresco:animated-webp:${frescoVersion}")
+    }
+  }
+
+  if (hermesEnabled.toBoolean()) {
+    implementation("com.facebook.react:hermes-android")
+  } else {
+    implementation jscFlavor
+  }
+}
+`;
+fs.mkdirSync(path.join(androidDir, 'app', 'src'), { recursive: true });
+fs.writeFileSync(path.join(androidDir, 'app', 'build.gradle'), appBuildGradle);
+console.log('Wrote android/app/build.gradle (no expoLibs; API 35 hardcoded).');
+
+// 6) Pin Gradle 8.6
 fs.mkdirSync(path.join(androidDir, 'gradle', 'wrapper'), { recursive: true });
 fs.writeFileSync(
   path.join(androidDir, 'gradle', 'wrapper', 'gradle-wrapper.properties'),
