@@ -3,7 +3,12 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-function run(cmd) { execSync(cmd, { stdio: 'inherit' }); }
+function run(cmd, opts = {}) {
+  execSync(cmd, {
+    stdio: 'inherit',
+    env: { ...process.env, CI: '1', ...opts.env },
+  });
+}
 
 // 1) Generate a fresh android/ from Expo templates
 run('npx expo prebuild --platform android --clean --non-interactive');
@@ -64,7 +69,7 @@ allprojects {
 fs.writeFileSync(path.join(androidDir, 'build.gradle'), rootBuildGradle);
 console.log('Wrote minimal android/build.gradle (no expo-root-project).');
 
-// 5) Overwrite android/app/build.gradle — no expoLibs, hardcode API 35
+// 5) Overwrite android/app/build.gradle — no expoLibs, hardcode API 35, no ${...} anywhere
 const appBuildGradle = `apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
@@ -98,8 +103,8 @@ android {
     targetSdkVersion 35
     versionCode 3
     versionName "1.0.3"
-    // JS interpolation conflict avoided: set to a constant
-    buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"stable\""
+    // Avoid JS interpolation hazards: use a constant
+    buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\\"stable\\""
   }
 
   signingConfigs {
@@ -136,9 +141,7 @@ android {
   }
 }
 
-// Optional Fresco extras without expoLibs — use a fixed version if enabled
-def frescoVersion = '3.2.0'
-
+// Optional Fresco extras without expoLibs — use fixed versions directly
 dependencies {
   implementation("com.facebook.react:react-android")
 
@@ -147,12 +150,12 @@ dependencies {
   def isWebpAnimatedEnabled = (findProperty('expo.webp.animated') ?: "") == "true"
 
   if (isGifEnabled) {
-    implementation("com.facebook.fresco:animated-gif:${frescoVersion}")
+    implementation("com.facebook.fresco:animated-gif:3.2.0")
   }
   if (isWebpEnabled) {
-    implementation("com.facebook.fresco:webpsupport:${frescoVersion}")
+    implementation("com.facebook.fresco:webpsupport:3.2.0")
     if (isWebpAnimatedEnabled) {
-      implementation("com.facebook.fresco:animated-webp:${frescoVersion}")
+      implementation("com.facebook.fresco:animated-webp:3.2.0")
     }
   }
 
@@ -165,7 +168,7 @@ dependencies {
 `;
 fs.mkdirSync(path.join(androidDir, 'app'), { recursive: true });
 fs.writeFileSync(path.join(androidDir, 'app', 'build.gradle'), appBuildGradle);
-console.log('Wrote android/app/build.gradle (no expoLibs; API 35 hardcoded).');
+console.log('Wrote android/app/build.gradle (no ${} expansions; API 35 hardcoded).');
 
 // 6) Pin Gradle 8.6
 fs.mkdirSync(path.join(androidDir, 'gradle', 'wrapper'), { recursive: true });
@@ -174,4 +177,3 @@ fs.writeFileSync(
   'distributionUrl=https://services.gradle.org/distributions/gradle-8.6-all.zip\n'
 );
 console.log('Pinned Gradle 8.6');
-
