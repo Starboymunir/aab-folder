@@ -54,7 +54,7 @@ const rootBuildGradle = `buildscript {
     mavenCentral()
   }
   dependencies {
-    classpath("com.android.tools.build:gradle:8.7.2")
+    classpath("com.android.tools.build:gradle:8.9.2")
     classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24")
   }
 }
@@ -174,6 +174,6 @@ console.log('Wrote android/app/build.gradle (no ${} expansions; API 35 hardcoded
 fs.mkdirSync(path.join(androidDir, 'gradle', 'wrapper'), { recursive: true });
 fs.writeFileSync(
   path.join(androidDir, 'gradle', 'wrapper', 'gradle-wrapper.properties'),
-  'distributionUrl=https://services.gradle.org/distributions/gradle-8.7-all.zip\n'
+  'distributionUrl=https://services.gradle.org/distributions/gradle-8.9-all.zip\n'
 );
 console.log('Pinned Gradle 8.6');
