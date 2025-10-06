@@ -174,6 +174,6 @@ console.log('Wrote android/app/build.gradle (no ${} expansions; API 35 hardcoded
 fs.mkdirSync(path.join(androidDir, 'gradle', 'wrapper'), { recursive: true });
 fs.writeFileSync(
   path.join(androidDir, 'gradle', 'wrapper', 'gradle-wrapper.properties'),
-  'distributionUrl=https://services.gradle.org/distributions/gradle-8.9-all.zip\n'
+  'distributionUrl=https://services.gradle.org/distributions/gradle-8.11.1-all.zip\n'
 );
 console.log('Pinned Gradle 8.6');
