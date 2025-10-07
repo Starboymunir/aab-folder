@@ -11,9 +11,7 @@
     "web": "expo start --web",
     "test": "jest --watchAll",
     "lint": "expo lint",
-    "postinstall": "patch-package",
-    "eas-build-pre-install": "node scripts/eas-pre.js",
-    "eas-build-post-install": "node scripts/eas-post.js"
+    "postinstall": "patch-package"
   },
   "jest": {
     "preset": "jest-expo"
