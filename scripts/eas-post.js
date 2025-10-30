@@ -95,13 +95,13 @@ android {
   buildToolsVersion "35.0.0"
   ndkVersion "26.1.10909125"
 
-  namespace 'com.anonymous.Kingzdata'
+  namespace 'com.anonymous.Kingsdata'
 
   defaultConfig {
-    applicationId 'com.anonymous.Kingzdata'
+    applicationId 'com.anonymous.Kingsdata'
     minSdkVersion 23
     targetSdkVersion 35
-    versionCode 3
+    versionCode 5
     versionName "1.0.3"
     // Avoid JS interpolation hazards: use a constant
     buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\\"stable\\""

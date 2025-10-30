@@ -3,6 +3,7 @@
     "name": "Kingzdata",
     "slug": "Kingzdata",
     "version": "1.0.2",
+    "owner": "barrow",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -12,6 +13,16 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    
+    "overrides": {
+      "metro": "0.80.9",
+      "metro-config": "0.80.9",
+      "metro-core": "0.80.9",
+      "metro-cache": "0.80.9",
+      "metro-file-map": "0.80.9",
+      "metro-resolver": "0.80.9",
+      "metro-runtime": "0.80.9"
+    },
     "ios": {
       "supportsTablet": true
     },
@@ -20,8 +31,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#2c330a"
       },
-      "package": "com.anonymous.Kingzdata",
-      "versionCode": 2
+      "package": "com.anonymous.Kingsdata",
+      "versionCode": 5
     },
     "web": {
       "bundler": "metro",
@@ -49,7 +60,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "67bb7d43-9fe7-461f-b815-4a9c7efa3b46"
+        "projectId": "81ab06dc-83bd-4f71-83c7-7a7ded422b1f"
       }
     }
   }
