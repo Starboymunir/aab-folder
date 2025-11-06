@@ -101,7 +101,7 @@ android {
     applicationId 'com.anonymous.Kingsdata'
     minSdkVersion 23
     targetSdkVersion 35
-    versionCode 5
+    versionCode 
     versionName "1.0.3"
     // Avoid JS interpolation hazards: use a constant
     buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\\"stable\\""

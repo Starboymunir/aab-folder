@@ -32,7 +32,7 @@
         "backgroundColor": "#2c330a"
       },
       "package": "com.anonymous.Kingsdata",
-      "versionCode": 5
+      "versionCode": 6
     },
     "web": {
       "bundler": "metro",
